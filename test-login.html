@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Login Firebase</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import { auth, db } from './js/firebase.js';
+    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById("loginForm");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const emailFull = `${username}@tribalroots.app`;
+
+        document.getElementById("log").textContent = `Tentative de connexion avec : ${emailFull}`;
+
+        try {
+          const cred = await signInWithEmailAndPassword(auth, emailFull, password);
+          const uid = cred.user.uid;
+          document.getElementById("log").textContent += `\n✔️ Connexion réussie - UID : ${uid}`;
+
+          const snap = await getDoc(doc(db, "users", uid));
+          if (!snap.exists()) throw new Error("⚠️ Rôle non trouvé dans Firestore");
+          const data = snap.data();
+
+          document.getElementById("log").textContent += `\nRôle : ${data.role}, Ref : ${data.ref}`;
+        } catch (err) {
+          document.getElementById("log").textContent += `\n❌ Erreur : ${err.message}`;
+        }
+      });
+    });
+  </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white shadow-lg rounded-lg p-6 w-full max-w-md">
+    <h1 class="text-xl font-bold mb-4">Test Login - Firebase Debug</h1>
+    <form id="loginForm" class="space-y-4">
+      <input type="text" id="username" placeholder="Nom d'utilisateur" class="w-full p-2 border rounded" required>
+      <input type="password" id="password" placeholder="Mot de passe" class="w-full p-2 border rounded" required>
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Tester Connexion</button>
+    </form>
+    <pre id="log" class="mt-4 text-sm text-gray-700 whitespace-pre-wrap"></pre>
+  </div>
+</body>
+</html>
