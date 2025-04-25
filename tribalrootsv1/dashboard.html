@@ -1,0 +1,56 @@
+<!-- dashboard.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin - TribalRoots</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/dashboard-handler.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-800">
+  
+    <!-- NAVBAR -->
+  <nav class="bg-white shadow p-4 flex justify-between items-center flex-wrap">
+    <div class="flex justify-between items-center w-full sm:w-auto">
+      <a href="index.html" class="font-bold text-blue-600 text-lg">🔧 Tableau de bord - Admin</a>
+      <button class="sm:hidden block text-gray-700" onclick="document.getElementById('menu').classList.toggle('hidden')">
+        ☰
+      </button>
+    </div>
+    <div id="menu" class="w-full sm:flex sm:items-center sm:gap-4 sm:w-auto hidden sm:block mt-4 sm:mt-0">
+      <a href="approved.html" class="block px-2 py-1 hover:underline">Réservations</a>
+      <a href="add-ticket.html" class="lock px-2 py-1 hover:underline">Manage Ticket</a>
+      <a href="tickets.html" class="block px-2 py-1 hover:underline">Rapport</a>
+      <a href="dashboard.html" class="block px-2 py-1 hover:underline">Utilisateurs</a>
+      <button onclick="logout()" class="bg-red-500 text-white px-4 py-1 rounded mt-2 sm:mt-0">Se déconnecter</button>
+    </div>
+  </nav>
+
+
+  <main class="p-6 max-w-5xl mx-auto">
+    <div class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">🔑 Gestion des utilisateurs</h2>
+      <input type="text" id="searchInput" placeholder="Rechercher un utilisateur..." class="w-full mb-4 p-2 border rounded shadow-sm">
+      <div id="userList" class="space-y-4"></div>
+    </div>
+
+    <div class="mt-10">
+      <h3 class="text-lg font-medium mb-2">➕ Attribuer un nouvel utilisateur</h3>
+      <form id="addUserForm" class="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        <input type="text" id="newUsername" placeholder="Nom d'utilisateur" class="p-2 border rounded" required>
+        <input type="password" id="newPassword" placeholder="Mot de passe" class="p-2 border rounded" required>
+        <select id="newRole" class="p-2 border rounded">
+          <option value="simpleUser">simpleUser</option>
+          <option value="viewer">viewer</option>
+          <option value="admin">admin</option>
+        </select>
+        <button type="submit" class="col-span-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">Créer l'utilisateur</button>
+      </form>
+      <p id="userAddStatus" class="mt-2 text-sm text-green-600 hidden">✅ Utilisateur ajouté avec succès</p>
+    </div>
+  </main>
+</body>
+</html>

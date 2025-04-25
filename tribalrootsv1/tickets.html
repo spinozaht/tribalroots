@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rapport des Tickets - TribalRoots</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/tickets.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen">
+  <!-- NAVBAR -->
+  <nav class="bg-white shadow p-4 flex justify-between items-center flex-wrap">
+    <div class="flex justify-between items-center w-full sm:w-auto">
+      <a href="index.html" class="font-bold text-blue-600 text-lg">🎫 TribalRoots</a>
+      <button class="sm:hidden block text-gray-700" onclick="document.getElementById('menu').classList.toggle('hidden')">
+        ☰
+      </button>
+    </div>
+    <div id="menu" class="w-full sm:flex sm:items-center sm:gap-4 sm:w-auto hidden sm:block mt-4 sm:mt-0">
+      <a href="approved.html" class="block px-2 py-1 hover:underline">Réservations</a>
+      <a href="add-ticket.html" class="lock px-2 py-1 hover:underline">Manage Ticket</a>
+      <a href="tickets.html" class="block px-2 py-1 hover:underline">Rapport</a>
+      <a href="dashboard.html" class="block px-2 py-1 hover:underline">Utilisateurs</a>
+      <button onclick="logout()" class="bg-red-500 text-white px-4 py-1 rounded mt-2 sm:mt-0">Se déconnecter</button>
+    </div>
+  </nav>
+
+  <main class="flex flex-col lg:flex-row p-4 gap-4">
+    <!-- ASIDE FILTER -->
+    <aside class="w-full lg:w-64 bg-white p-4 rounded shadow h-fit">
+      <h2 class="text-lg font-bold mb-4">🎛️ Filtres</h2>
+      <div class="space-y-2">
+        <select id="filterRef" class="w-full p-2 border rounded">
+          <option value="">Référence</option>
+          <option value="Spino">Spino</option>
+          <option value="Alex">Alex</option>
+          <option value="Annie">Annie</option>
+          <option value="Autres">Autres</option>
+        </select>
+
+        <select id="filterMethod" class="w-full p-2 border rounded">
+          <option value="">Méthode de paiement</option>
+          <option value="Moncash">Moncash</option>
+          <option value="Zelle">Zelle</option>
+          <option value="Natcash">Natcash</option>
+          <option value="Cash">Cash</option>
+        </select>
+
+        <input type="date" id="filterDate" class="w-full p-2 border rounded">
+
+        <button id="resetFilters" class="w-full bg-gray-300 hover:bg-gray-400 text-sm py-1 rounded">Réinitialiser</button>
+      </div>
+    </aside>
+
+    <!-- TABLEAU DES TICKETS -->
+    <section class="flex-1 bg-white p-4 rounded shadow">
+      <h2 class="text-xl font-bold mb-4">📋 Rapport des Tickets</h2>
+      <div id="ticketGroups" class="space-y-4"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { getTickets } from './js/tickets.js';
+    import { logout, getUserInfo } from './js/auth.js';
+
+    const { role } = getUserInfo();
+    if (role !== 'admin' && role !== 'viewer') window.location.href = 'login.html';
+
+    let allTickets = [];
+
+    async function loadTickets() {
+      allTickets = await getTickets();
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const ref = document.getElementById("filterRef").value;
+      const method = document.getElementById("filterMethod").value;
+      const date = document.getElementById("filterDate").value;
+
+      let filtered = allTickets.filter(t => {
+        return (!ref || t.ref === ref) &&
+               (!method || t.payment_method === method) &&
+               (!date || t.date === date);
+      });
+
+      const grouped = {};
+      let totalGlobal = 0;
+
+      filtered.forEach(t => {
+        if (!grouped[t.ref]) grouped[t.ref] = [];
+        grouped[t.ref].push(t);
+      });
+
+      const container = document.getElementById("ticketGroups");
+      container.innerHTML = "";
+
+      for (const ref in grouped) {
+        const list = grouped[ref];
+        const total = list.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+        totalGlobal += total;
+
+        const block = document.createElement("div");
+        block.className = "border-t pt-4";
+        block.innerHTML = `
+          <div class="bg-gray-50 p-3 rounded-md shadow-sm">
+            <h3 class="text-lg font-semibold mb-2 text-blue-700">${ref}</h3>
+            <div class="space-y-2 text-sm">
+              ${list.map(t => `
+                <div class="flex flex-col sm:flex-row sm:justify-between bg-white p-2 rounded border">
+                  <div><strong>${t.name}</strong></div>
+                  <div class="text-gray-600">${t.amount} € • ${t.payment_method} • ${t.date}</div>
+                </div>
+              `).join('')}
+            </div>
+            ${ref === "Spino"
+              ? (() => {
+                  const totalUSD = list.filter(t => Number(t.amount) < 999)
+                                       .reduce((sum, t) => sum + Number(t.amount), 0);
+                  const totalHTG = list.filter(t => Number(t.amount) >= 999)
+                                       .reduce((sum, t) => sum + Number(t.amount), 0);
+                  return `
+                    <p class="mt-2 font-medium text-right text-green-700">Total Spino USD : ${totalUSD.toFixed(2)} $</p>
+                    <p class="text-right text-yellow-700">Total Spino HTG : ${totalHTG.toFixed(2)} HTG</p>
+                  `;
+                })()
+              : `<p class="mt-2 font-medium text-right text-green-700">Total ${ref} : ${total.toFixed(2)} €</p>`
+            }
+          </div>
+        `;
+        container.appendChild(block);
+      }
+
+      const final = document.createElement("div");
+      const totalUSD = filtered
+  .filter(t => Number(t.amount) < 999)
+  .reduce((sum, t) => sum + Number(t.amount), 0);
+
+const totalHTG = filtered
+  .filter(t => Number(t.amount) >= 999)
+  .reduce((sum, t) => sum + Number(t.amount), 0);
+
+final.className = "border-t pt-4 text-right text-lg mt-4 space-y-1";
+final.innerHTML = `
+  <p class="font-bold text-green-800">💵 Total Global USD : ${totalUSD.toFixed(2)} $</p>
+  <p class="font-bold text-yellow-700">🇭🇹 Total Global HTG : ${totalHTG.toFixed(2)} HTG</p>
+`;
+      container.appendChild(final);
+    }
+
+    document.getElementById("filterRef").addEventListener("change", applyFilters);
+    document.getElementById("filterMethod").addEventListener("change", applyFilters);
+    document.getElementById("filterDate").addEventListener("change", applyFilters);
+    document.getElementById("resetFilters").addEventListener("click", () => {
+      document.getElementById("filterRef").value = "";
+      document.getElementById("filterMethod").value = "";
+      document.getElementById("filterDate").value = "";
+      applyFilters();
+    });
+
+    loadTickets();
+  </script>
+</body>
+</html>

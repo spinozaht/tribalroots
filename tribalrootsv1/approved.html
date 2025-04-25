@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vos Réservations - TribalRoots</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/auth.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen">
+  
+  <!-- NAVBAR -->
+  <nav class="bg-white shadow p-4 flex justify-between items-center flex-wrap">
+    <div class="flex justify-between items-center w-full sm:w-auto">
+      <a href="index.html" class="font-bold text-blue-600 text-lg">🎫 TribalRoots</a>
+      <button class="sm:hidden block text-gray-700" onclick="document.getElementById('menu').classList.toggle('hidden')">
+        ☰
+      </button>
+    </div>
+    <div id="menu" class="w-full sm:flex sm:items-center sm:gap-4 sm:w-auto hidden sm:block mt-4 sm:mt-0">
+      <a href="approved.html" class="block px-2 py-1 hover:underline">Réservations</a>
+      <a href="add-ticket.html" class="lock px-2 py-1 hover:underline">Manage Ticket</a>
+      <a href="tickets.html" class="block px-2 py-1 hover:underline">Rapport</a>
+      <a href="dashboard.html" class="block px-2 py-1 hover:underline">Utilisateurs</a>
+      <button onclick="logout()" class="bg-red-500 text-white px-4 py-1 rounded mt-2 sm:mt-0">Se déconnecter</button>
+    </div>
+  </nav>
+
+
+  <main class="p-6 max-w-5xl mx-auto">
+    <h1 class="text-xl font-bold mb-4">📋 Vos Réservations</h1>
+    <input type="text" id="searchClient" placeholder="🔍 Rechercher un client..." class="w-full p-2 border rounded mb-6">
+    <div id="ticketCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  </main>
+
+  <script type="module">
+    import { logout, getUserInfo } from './js/auth.js';
+    import { db } from './js/firebase.js';
+    import { collection, getDocs, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+
+    const { role } = getUserInfo();
+    if (!['admin', 'simpleUser', 'viewer'].includes(role)) window.location.href = 'login.html';
+
+    let tickets = [];
+
+    async function loadTickets() {
+      const snapshot = await getDocs(collection(db, "tickets"));
+      tickets = snapshot.docs.map(docSnap => ({ ...docSnap.data(), idDoc: docSnap.id }));
+      displayCards(tickets);
+    }
+
+    function displayCards(list) {
+      const container = document.getElementById("ticketCards");
+      container.innerHTML = "";
+
+      list.forEach(ticket => {
+        const initialQty = parseInt(ticket.initialOrder ?? ticket.order);
+        const currentQty = parseInt(ticket.order);
+        const isAvailable = currentQty > 0;
+        const card = document.createElement("div");
+        card.className = "bg-white shadow p-4 rounded border border-gray-200";
+        card.innerHTML = `
+          <h2 class="text-lg font-bold text-blue-600">🎫 TribalRoots</h2>
+          <p class="text-sm text-gray-600">27 AVRIL 2025</p>
+          <p class="mt-2 text-sm">Welcome <strong>${ticket.name}</strong>,</p>
+          <p class="text-sm">
+            🎫 You ordered <strong>${initialQty}</strong> ticket(s)<br>
+            ${isAvailable
+              ? `✅ <strong>${currentQty}</strong> remaining`
+              : `<span class='text-red-600'>❌ All tickets used</span>`}
+          </p>
+          <button ${!isAvailable ? 'disabled' : ''} data-id="${ticket.idDoc}" class="mt-3 w-full bg-blue-500 text-white py-1 rounded ${isAvailable ? 'hover:bg-blue-600' : 'opacity-50 cursor-not-allowed'}">
+            Utiliser un ticket
+          </button>
+        `;
+
+        card.querySelector("button").addEventListener("click", async () => {
+          if (currentQty > 0) {
+            const newQty = currentQty - 1;
+            ticket.order = newQty;
+            await updateDoc(doc(db, "tickets", ticket.idDoc), { order: newQty });
+            displayCards(tickets);
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    document.getElementById("searchClient").addEventListener("input", e => {
+      const q = e.target.value.toLowerCase();
+      const filtered = tickets.filter(t => t.name.toLowerCase().includes(q));
+      displayCards(filtered);
+    });
+
+    loadTickets();
+  </script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ajouter un Ticket - TribalRoots</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/tickets.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen">
+    
+  <!-- NAVBAR -->
+  <nav class="bg-white shadow p-4 flex justify-between items-center flex-wrap">
+    <div class="flex justify-between items-center w-full sm:w-auto">
+      <a href="index.html" class="font-bold text-blue-600 text-lg">🎫 TribalRoots</a>
+      <button class="sm:hidden block text-gray-700" onclick="document.getElementById('menu').classList.toggle('hidden')">
+        ☰
+      </button>
+    </div>
+    <div id="menu" class="w-full sm:flex sm:items-center sm:gap-4 sm:w-auto hidden sm:block mt-4 sm:mt-0">
+      <a href="approved.html" class="block px-2 py-1 hover:underline">Réservations</a>
+      <a href="add-ticket.html" class="lock px-2 py-1 hover:underline">Manage Ticket</a>
+      <a href="tickets.html" class="block px-2 py-1 hover:underline">Rapport</a>
+      <a href="dashboard.html" class="block px-2 py-1 hover:underline">Utilisateurs</a>
+      <button onclick="logout()" class="bg-red-500 text-white px-4 py-1 rounded mt-2 sm:mt-0">Se déconnecter</button>
+    </div>
+  </nav>
+
+
+  <main class="p-6 max-w-3xl mx-auto">
+    <h1 class="text-xl font-semibold mb-4">➕ Ajouter un nouveau ticket</h1>
+    <form id="ticketForm" class="bg-white p-6 rounded shadow space-y-4">
+      <input id="name" type="text" placeholder="Nom du client" required class="w-full p-2 border rounded">
+      <input id="amount" type="number" placeholder="Montant payé" required class="w-full p-2 border rounded">
+      <input id="order" type="text" placeholder="Qty Ticket" required class="w-full p-2 border rounded">
+
+      <select id="paymentMethod" onchange="handlePaymentMethod()" class="w-full p-2 border rounded" required>
+        <option value="">Méthode de paiement</option>
+        <option value="Moncash">Moncash</option>
+        <option value="Zelle">Zelle</option>
+        <option value="Natcash">Natcash</option>
+        <option value="Cash">Cash</option>
+      </select>
+
+      <div id="cashRefBlock" class="hidden">
+        <label class="block text-sm mb-1">Référence Cash</label>
+        <select id="cashRef" class="w-full p-2 border rounded">
+          <option value="Spino">Spino</option>
+          <option value="Alex">Alex</option>
+          <option value="Annie">Annie</option>
+          <option value="Autres">Autres</option>
+        </select>
+      </div>
+
+      <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded">Enregistrer le ticket</button>
+    </form>
+    <div id="confirmation" class="mt-4 text-green-600 text-center hidden">✅ Ticket ajouté avec succès</div>
+  </main>
+
+  <script type="module">
+    import { saveTicket, generateClientId } from './js/tickets.js';
+    import { getUserInfo, logout } from './js/auth.js';
+
+    const { user, role } = getUserInfo();
+    if (role !== 'admin' && role !== 'simpleUser') window.location.href = 'login.html';
+
+    window.handlePaymentMethod = () => {
+      const method = document.getElementById("paymentMethod").value;
+      document.getElementById("cashRefBlock").classList.toggle("hidden", method !== "Cash");
+    };
+
+    document.getElementById("ticketForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const id = await generateClientId();
+      const name = document.getElementById("name").value;
+      const amount = document.getElementById("amount").value;
+      const order = document.getElementById("order").value;
+      const method = document.getElementById("paymentMethod").value;
+      const ref = method === "Moncash" ? "Spino" : method === "Zelle" || method === "Natcash" ? "Alex" : method === "Cash" ? document.getElementById("cashRef").value : user;
+
+      await saveTicket({ id, name, amount, order, payment_method: method, ref, date: new Date().toISOString().split('T')[0] });
+
+      document.getElementById("confirmation").classList.remove("hidden");
+      setTimeout(() => document.getElementById("confirmation").classList.add("hidden"), 3000);
+      e.target.reset();
+      document.getElementById("cashRefBlock").classList.add("hidden");
+    });
+  </script>
+</body>
+</html>

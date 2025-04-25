@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - TribalRoots</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/auth.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen">
+  
+  <!-- NAVBAR -->
+  <nav class="bg-white shadow p-4 flex justify-between items-center flex-wrap">
+    <div class="flex justify-between items-center w-full sm:w-auto">
+      <a href="index.html" class="font-bold text-blue-600 text-lg">🎫 TribalRoots</a>
+      <button class="sm:hidden block text-gray-700" onclick="document.getElementById('menu').classList.toggle('hidden')">
+        ☰
+      </button>
+    </div>
+    <div id="menu" class="w-full sm:flex sm:items-center sm:gap-4 sm:w-auto hidden sm:block mt-4 sm:mt-0">
+      <a href="approved.html" class="block px-2 py-1 hover:underline">Réservations</a>
+      <a href="add-ticket.html" class="lock px-2 py-1 hover:underline">Manage Ticket</a>
+      <a href="tickets.html" class="block px-2 py-1 hover:underline">Rapport</a>
+      <a href="dashboard.html" class="block px-2 py-1 hover:underline">Utilisateurs</a>
+      <button onclick="logout()" class="bg-red-500 text-white px-4 py-1 rounded mt-2 sm:mt-0">Se déconnecter</button>
+    </div>
+  </nav>
+
+
+  <main class="p-6 max-w-4xl mx-auto">
+    <h1 id="welcomeTitle" class="text-2xl font-bold mb-6 text-center">Bienvenue</h1>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <a href="add-ticket.html" class="bg-green-500 hover:bg-green-600 text-white text-center py-10 rounded shadow-xl text-xl font-semibold">➕ Ajouter un Ticket</a>
+      <a href="approved.html" class="bg-blue-500 hover:bg-blue-600 text-white text-center py-10 rounded shadow-xl text-xl font-semibold">🔍 Voir Réservations</a>
+      <a href="tickets.html" class="bg-purple-500 hover:bg-purple-600 text-white text-center py-10 rounded shadow-xl text-xl font-semibold">📊 Rapport</a>
+      <a href="dashboard.html" class="bg-gray-800 hover:bg-gray-900 text-white text-center py-10 rounded shadow-xl text-xl font-semibold">🛠️ Gestion des Utilisateurs</a>
+    </div>
+  </main>
+
+  <script type="module">
+    import { getUserRef, logout } from './js/auth.js';
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+  
+    const auth = getAuth();
+  
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return window.location.href = 'login.html';
+  
+      const ref = await getUserRef();
+      if (!ref) return window.location.href = 'login.html';
+  
+      const welcome = document.getElementById('welcomeTitle');
+      if (welcome) {
+        welcome.textContent = `Bienvenue, ${ref.charAt(0).toUpperCase() + ref.slice(1)}`;
+      }
+    });
+  </script>
+</body>
+</html>
